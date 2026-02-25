@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FHIR CapabilityStatement Viewer</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>FHIR CapabilityStatement Viewer</h1>
+            <p>Load and view FHIR CapabilityStatement data in a human-readable format</p>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <div class="url-input-group">
+                    <label for="fhir-url">FHIR CapabilityStatement URL:</label>
+                    <input 
+                        type="url" 
+                        id="fhir-url" 
+                        placeholder="Enter FHIR CapabilityStatement URL"
+                        value=""
+                    >
+                    <button id="load-button">Load CapabilityStatement</button>
+                    <button id="demo-button" class="demo-button">Try Sandbox Demo URL</button>
+                </div>
+            </section>
+
+            <section class="loading-section" id="loading-section" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Loading FHIR CapabilityStatement...</p>
+            </section>
+
+            <section class="error-section" id="error-section" style="display: none;">
+                <div class="error-message">
+                    <h3>Error</h3>
+                    <p id="error-text"></p>
+                </div>
+            </section>
+
+            <section class="results-section" id="results-section" style="display: none;">
+                <div class="link-section">
+                    <a href="#" id="permalink-link" class="permalink-button">🔗 Link to this Overview</a>
+                </div>
+                <div class="capability-overview">
+                    <h2>CapabilityStatement Overview</h2>
+                    <div id="overview-content"></div>
+                </div>
+
+                <div class="capability-details">
+                    <div class="tabs">
+                        <button class="tab-button active" data-tab="resources">Resources</button>
+                        <button class="tab-button" data-tab="interactions">Interactions</button>
+                        <button class="tab-button" data-tab="operations">Operations</button>
+                        <button class="tab-button" data-tab="search">Search Parameters</button>
+                        <button class="tab-button" data-tab="security">Security</button>
+                        <button class="tab-button" data-tab="testing">Testing</button>
+                        <button class="tab-button" data-tab="raw">Raw Data</button>
+                    </div>
+
+                    <div class="tab-content">
+                        <div id="resources-tab" class="tab-panel active"></div>
+                        <div id="interactions-tab" class="tab-panel"></div>
+                        <div id="operations-tab" class="tab-panel"></div>
+                        <div id="search-tab" class="tab-panel"></div>
+                        <div id="security-tab" class="tab-panel"></div>
+                        <div id="testing-tab" class="tab-panel"></div>
+                        <div id="raw-tab" class="tab-panel"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <p>FHIR CapabilityStatement Viewer - Built for analyzing FHIR server capabilities</p>
+                <div class="disclaimer">
+                    <p><strong>Provided by Medical Informatics Engineering</strong></p>
+                    <p class="disclaimer-text">
+                        This tool is provided for informational purposes only. Medical Informatics Engineering makes no representations or warranties about the accuracy, completeness, or reliability of the information displayed. Users are responsible for verifying all information independently. Medical Informatics Engineering disclaims any liability for decisions made based on the information presented in this tool.
+                    </p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
