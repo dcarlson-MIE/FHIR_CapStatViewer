@@ -392,6 +392,12 @@ Try:
         
         const overviewHtml = `
             <div class="overview-grid">
+                ${data.title ? `
+                <div class="overview-card">
+                    <h3>Title</h3>
+                    <p>${data.title}</p>
+                </div>
+                ` : ''}
                 <div class="overview-card">
                     <h3>Server Name</h3>
                     <p>${data.name || 'Not specified'}</p>
@@ -421,8 +427,8 @@ Try:
                     <p>${data.kind || 'Not specified'}</p>
                 </div>
             </div>
+            ${data.description ? `<div style="margin-top: 1.5rem;"><h3>Description</h3><p>${data.description}</p></div>` : ''}
             ${this.renderContactInfo(data.contact)}
-            ${data.description ? `<div style="margin-top: 1rem;"><h3>Description</h3><p>${data.description}</p></div>` : ''}
         `;
         
         overviewContent.innerHTML = overviewHtml;
