@@ -68,7 +68,21 @@ python3 proxy-server.py 8080
    sudo systemctl status fhir-proxy
    ```
 
-3. **Configure Nginx reverse proxy:**
+3. **Configure web server reverse proxy:**
+
+   **First, identify your web server:**
+   ```bash
+   # Check for nginx
+   which nginx
+   
+   # Check for Apache
+   which apache2 || which httpd
+   
+   # Or check running processes
+   ps aux | grep -E 'nginx|httpd|apache2' | grep -v grep
+   ```
+
+   **For Nginx:**
    ```bash
    # Copy nginx config
    sudo cp nginx.conf /etc/nginx/sites-available/fhircapstatviewer
@@ -85,6 +99,29 @@ python3 proxy-server.py 8080
    # Reload nginx
    sudo systemctl reload nginx
    ```
+
+   **For Apache:**
+   ```bash
+   # Enable required modules
+   sudo a2enmod proxy proxy_http headers rewrite ssl
+   
+   # Copy Apache config
+   sudo cp apache-fhircapstatviewer.conf /etc/apache2/sites-available/
+   
+   # Edit to configure SSL certificates if needed
+   sudo nano /etc/apache2/sites-available/apache-fhircapstatviewer.conf
+   
+   # Enable the site
+   sudo a2ensite apache-fhircapstatviewer
+   
+   # Test configuration
+   sudo apache2ctl configtest
+   
+   # Reload Apache
+   sudo systemctl reload apache2
+   ```
+   
+   **Note:** If SSL is already configured elsewhere (e.g., through a load balancer or existing virtual host), you may only need to add the `/proxy` location to your existing configuration.
 
 4. **Test the proxy:**
    ```bash
