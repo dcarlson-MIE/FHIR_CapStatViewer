@@ -85,82 +85,107 @@ class FHIRCapabilityViewer {
                 usedProxy = true;
                 
                 try {
-                    // If direct fetch fails due to CORS, try using a CORS proxy
-                    const proxyUrl = 'https://api.allorigins.win/get?url=';
-                    const proxiedUrl = proxyUrl + encodeURIComponent(`${url}${url.includes('?') ? '&' : '?'}_format=json`);
+                    // Try local proxy first (if available)
+                    let localProxyUrl = window.location.origin + '/proxy.php?url=';
+                    let proxiedUrl = localProxyUrl + encodeURIComponent(`${url}${url.includes('?') ? '&' : '?'}_format=json`);
                     
-                    console.log('Attempting proxy fetch to:', proxiedUrl);
-                    response = await fetch(proxiedUrl, {
-                        method: 'GET',
-                        headers: {
-                            'Accept': 'application/json'
-                        }
-                    });
-
-                    if (!response.ok) {
-                        // If allorigins fails, try corsproxy.io as backup
-                        if (response.status === 408 || response.status >= 400) {
-                            console.log('First proxy failed with timeout/server error, trying alternative proxy...');
-                            const altProxyUrl = 'https://corsproxy.io/?';
-                            const altProxiedUrl = altProxyUrl + encodeURIComponent(`${url}${url.includes('?') ? '&' : '?'}_format=json`);
-                            
-                            console.log('Attempting alternative proxy fetch to:', altProxiedUrl);
-                            response = await fetch(altProxiedUrl, {
-                                method: 'GET',
-                                headers: {
-                                    'Accept': 'application/fhir+json, application/json'
-                                }
-                            });
-                            
-                            if (!response.ok) {
-                                throw new Error(`Alternative proxy request failed: HTTP ${response.status}: ${response.statusText}`);
+                    console.log('Attempting local proxy fetch to:', proxiedUrl);
+                    
+                    try {
+                        response = await fetch(proxiedUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json'
                             }
+                        });
+
+                        if (response.ok) {
+                            console.log('Local proxy fetch successful, parsing JSON...');
+                            data = await response.json();
+                            console.log('Local proxy complete, data:', data.resourceType);
+                        } else {
+                            throw new Error(`Local proxy returned HTTP ${response.status}`);
+                        }
+                    } catch (localProxyError) {
+                        console.log('Local proxy failed, trying third-party proxy...', localProxyError);
+                        
+                        // If local proxy fails, try using third-party CORS proxy
+                        const thirdPartyProxyUrl = 'https://api.allorigins.win/get?url=';
+                        proxiedUrl = thirdPartyProxyUrl + encodeURIComponent(`${url}${url.includes('?') ? '&' : '?'}_format=json`);
+                        
+                        console.log('Attempting third-party proxy fetch to:', proxiedUrl);
+                        response = await fetch(proxiedUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (!response.ok) {
+                            // If allorigins fails, try corsproxy.io as backup
+                            if (response.status === 408 || response.status >= 400) {
+                                console.log('Third-party proxy failed, trying alternative proxy...');
+                                const altProxyUrl = 'https://corsproxy.io/?';
+                                const altProxiedUrl = altProxyUrl + encodeURIComponent(`${url}${url.includes('?') ? '&' : '?'}_format=json`);
                             
-                            console.log('Alternative proxy fetch successful, parsing JSON...');
-                            // The alternative proxy returns the JSON directly (not wrapped)
-                            let responseText = await response.text();
-                            console.log('Alternative proxy response length:', responseText.length);
-                            
-                            // Clean the response more thoroughly
-                            responseText = responseText
-                                // Remove null bytes and control characters
-                                .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
-                                // Normalize line endings
-                                .replace(/\r\n/g, '\n')
-                                .replace(/\r/g, '\n');
-                            
-                            try {
-                                data = JSON.parse(responseText);
-                                console.log('Alternative proxy parsing complete, data:', data.resourceType);
-                            } catch (parseError) {
-                                console.error('Alternative proxy JSON parsing failed:', parseError);
+                                console.log('Attempting alternative proxy fetch to:', altProxiedUrl);
+                                response = await fetch(altProxiedUrl, {
+                                    method: 'GET',
+                                    headers: {
+                                        'Accept': 'application/fhir+json, application/json'
+                                    }
+                                });
                                 
-                                // Show the problematic area if we can find it
-                                const errorPos = parseError.message.match(/position (\d+)/);
-                                if (errorPos) {
-                                    const pos = parseInt(errorPos[1]);
-                                    const problemArea = responseText.substring(Math.max(0, pos - 100), pos + 100);
-                                    console.log('Alternative proxy problem area:', problemArea);
+                                if (!response.ok) {
+                                    throw new Error(`Alternative proxy request failed: HTTP ${response.status}: ${response.statusText}`);
                                 }
                                 
-                                // Extract line/column info for better error reporting
-                                let errorDetails = parseError.message;
-                                const lineMatch = parseError.message.match(/line (\d+)/);
-                                const posMatch = parseError.message.match(/position (\d+)/);
+                                console.log('Alternative proxy fetch successful, parsing JSON...');
+                                // The alternative proxy returns the JSON directly (not wrapped)
+                                let responseText = await response.text();
+                                console.log('Alternative proxy response length:', responseText.length);
                                 
-                                if (lineMatch && posMatch) {
-                                    errorDetails = `JSON Parse Error at line ${lineMatch[1]}, position ${posMatch[1]}: ${parseError.message}`;
+                                // Clean the response more thoroughly
+                                responseText = responseText
+                                    // Remove null bytes and control characters
+                                    .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
+                                    // Normalize line endings
+                                    .replace(/\r\n/g, '\n')
+                                    .replace(/\r/g, '\n');
+                                
+                                try {
+                                    data = JSON.parse(responseText);
+                                    console.log('Alternative proxy parsing complete, data:', data.resourceType);
+                                } catch (parseError) {
+                                    console.error('Alternative proxy JSON parsing failed:', parseError);
+                                    
+                                    // Show the problematic area if we can find it
+                                    const errorPos = parseError.message.match(/position (\d+)/);
+                                    if (errorPos) {
+                                        const pos = parseInt(errorPos[1]);
+                                        const problemArea = responseText.substring(Math.max(0, pos - 100), pos + 100);
+                                        console.log('Alternative proxy problem area:', problemArea);
+                                    }
+                                    
+                                    // Extract line/column info for better error reporting
+                                    let errorDetails = parseError.message;
+                                    const lineMatch = parseError.message.match(/line (\d+)/);
+                                    const posMatch = parseError.message.match(/position (\d+)/);
+                                    
+                                    if (lineMatch && posMatch) {
+                                        errorDetails = `JSON Parse Error at line ${lineMatch[1]}, position ${posMatch[1]}: ${parseError.message}`;
+                                    }
+                                    
+                                    throw new Error(`FHIR Server JSON Malformed: ${errorDetails}`);
                                 }
-                                
-                                throw new Error(`FHIR Server JSON Malformed: ${errorDetails}`);
+                            } else {
+                                throw new Error(`Proxy request failed: HTTP ${response.status}: ${response.statusText}`);
                             }
                         } else {
-                            throw new Error(`Proxy request failed: HTTP ${response.status}: ${response.statusText}`);
-                        }
-                    } else {
-                        console.log('Proxy fetch successful, parsing response...');
-                        const proxyResponse = await response.json();
-                        console.log('Proxy response status:', proxyResponse.status);
+                            // Third-party proxy (allorigins) was successful
+                            console.log('Third-party proxy fetch successful, parsing response...');
+                            const proxyResponse = await response.json();
+                            console.log('Third-party proxy response status:', proxyResponse.status);
                         
                         if (proxyResponse.status && proxyResponse.status.http_code !== 200) {
                             throw new Error(`FHIR server returned HTTP ${proxyResponse.status.http_code}`);
@@ -244,6 +269,7 @@ class FHIRCapabilityViewer {
                             }
                         }
                     }
+                    } // End of local proxy try-catch
                 } catch (proxyError) {
                     console.error('Proxy fetch also failed:', proxyError);
                     throw new Error(`Both direct connection and proxy failed. Direct error: ${corsError.message}. Proxy error: ${proxyError.message}`);
