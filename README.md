@@ -15,6 +15,27 @@ A modern web application for loading and viewing FHIR CapabilityStatement data i
   - **Raw Data**: Complete JSON data for technical review
 - **Responsive Design**: Works on desktop, tablet, and mobile devices
 - **Error Handling**: Clear error messages for network issues or invalid data
+- **CORS Proxy Support**: Built-in support for server-side proxy to bypass CORS restrictions
+
+## CORS and Proxy Setup
+
+Many FHIR servers have CORS restrictions that prevent direct browser access. This application includes:
+
+1. **Automatic Fallback**: Tries direct connection first, then falls back to CORS proxies
+2. **Server-Side Proxy**: Python-based proxy (no dependencies!) for production deployments
+3. **Third-Party Proxies**: Uses `api.allorigins.win` and `corsproxy.io` as fallbacks
+
+### For Production Deployment
+
+If users report "CONNECTION FAILED" errors, deploy the included Python proxy:
+
+```bash
+# Quick setup (5 minutes)
+python3 proxy-server.py 3001
+```
+
+See **[QUICKSTART.md](QUICKSTART.md)** for 5-minute deployment guide.  
+See **[PROXY_SETUP.md](PROXY_SETUP.md)** for detailed configuration.
 
 ## Getting Started
 

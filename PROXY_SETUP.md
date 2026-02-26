@@ -18,7 +18,98 @@ Choose the option that matches your server environment:
 
 ---
 
-## Option 1: PHP Proxy (Recommended for most web servers)
+## Option 1: Python Proxy (Recommended - No Dependencies!)
+
+### Requirements
+- **Python 3.6+** (usually pre-installed on Linux servers)
+- **No additional packages needed** - uses only Python standard library
+
+### Deployment Steps
+
+#### For Development/Testing:
+
+```bash
+# Make the script executable
+chmod +x proxy-server.py
+
+# Run on port 3001
+python3 proxy-server.py 3001
+
+# Or specify a different port
+python3 proxy-server.py 8080
+```
+
+#### For Production with systemd:
+
+1. **Copy files to your web server:**
+   ```bash
+   # Copy all files to your web root
+   scp -r * user@fhircapstatviewer.os.mieweb.org:/var/www/fhircapstatviewer.os.mieweb.org/
+   ```
+
+2. **Install the systemd service:**
+   ```bash
+   # Copy service file
+   sudo cp fhir-proxy.service /etc/systemd/system/
+   
+   # Edit the service file if needed (change paths, user, port)
+   sudo nano /etc/systemd/system/fhir-proxy.service
+   
+   # Reload systemd
+   sudo systemctl daemon-reload
+   
+   # Enable service to start on boot
+   sudo systemctl enable fhir-proxy
+   
+   # Start the service
+   sudo systemctl start fhir-proxy
+   
+   # Check status
+   sudo systemctl status fhir-proxy
+   ```
+
+3. **Configure Nginx reverse proxy:**
+   ```bash
+   # Copy nginx config
+   sudo cp nginx.conf /etc/nginx/sites-available/fhircapstatviewer
+   
+   # Edit to add your SSL certificates
+   sudo nano /etc/nginx/sites-available/fhircapstatviewer
+   
+   # Create symbolic link
+   sudo ln -s /etc/nginx/sites-available/fhircapstatviewer /etc/nginx/sites-enabled/
+   
+   # Test configuration
+   sudo nginx -t
+   
+   # Reload nginx
+   sudo systemctl reload nginx
+   ```
+
+4. **Test the proxy:**
+   ```bash
+   curl "https://fhircapstatviewer.os.mieweb.org/proxy?url=https://omg.webchartnow.com/webchart.cgi/fhir/metadata"
+   ```
+
+### Monitoring Python Proxy:
+
+```bash
+# Check service status
+sudo systemctl status fhir-proxy
+
+# View logs
+sudo journalctl -u fhir-proxy -f
+
+# Restart service
+sudo systemctl restart fhir-proxy
+
+# Stop service
+sudo systemctl stop fhir-proxy
+```
+
+---
+
+## Option 2: PHP Proxy (If PHP is available)
 
 ### Requirements
 - PHP 5.4+ (with cURL extension enabled)
@@ -60,7 +151,49 @@ Then access as: `https://yourdomain.com/api/proxy?url=...`
 
 ---
 
-## Option 2: Node.js Proxy (For dedicated servers)
+## Option 2: PHP Proxy (If PHP is available)
+
+### Requirements
+- PHP 5.4+ (with cURL extension enabled)
+- Any web server (Apache, Nginx, etc.)
+
+### Deployment Steps
+
+1. **Upload the proxy file:**
+   ```bash
+   # Copy proxy.php to your web root
+   cp proxy.php /path/to/fhircapstatviewer.os.mieweb.org/
+   ```
+
+2. **Verify PHP and cURL are enabled:**
+   ```bash
+   php -m | grep curl
+   # Should show "curl"
+   ```
+
+3. **Test the proxy:**
+   ```bash
+   curl "https://fhircapstatviewer.os.mieweb.org/proxy.php?url=https://omg.webchartnow.com/webchart.cgi/fhir/metadata"
+   ```
+
+4. **Configure web server to route /proxy to proxy.php:**
+   
+   **Nginx:**
+   ```nginx
+   location /proxy {
+       rewrite ^/proxy(.*)$ /proxy.php$1 last;
+   }
+   ```
+   
+   **Apache (.htaccess):**
+   ```apache
+   RewriteEngine On
+   RewriteRule ^proxy$ proxy.php [QSA,L]
+   ```
+
+---
+
+## Option 3: Node.js Proxy (For dedicated Node.js servers)
 
 ### Requirements
 - Node.js 14+ and npm
@@ -121,7 +254,7 @@ Then access as: `https://yourdomain.com/api/proxy?url=...`
 ## Application Configuration
 
 The application (`app.js`) is already configured to:
-1. **Try local proxy first:** `/proxy.php?url=` (or your custom path)
+1. **Try local proxy first:** `/proxy?url=` (works with Python, PHP, or Node.js proxy)
 2. **Fall back to third-party proxies** if local proxy fails
 
 ### Custom Proxy URL
@@ -129,20 +262,30 @@ The application (`app.js`) is already configured to:
 If your proxy is at a different path, update `app.js` line ~88:
 
 ```javascript
-// Change this line:
+// Current default:
+let localProxyUrl = window.location.origin + '/proxy?url=';
+
+// For proxy.php directly:
 let localProxyUrl = window.location.origin + '/proxy.php?url=';
 
-// To your custom path:
-let localProxyUrl = window.location.origin + '/api/proxy?url=';
 // Or absolute URL:
-let localProxyUrl = 'https://fhircapstatviewer.os.mieweb.org/api/proxy?url=';
+let localProxyUrl = 'https://fhircapstatviewer.os.mieweb.org/proxy?url=';
 ```
 
 ---
 
 ## Testing
 
-### Test the proxy directly:
+### Test Python proxy directly:
+```bash
+# Local development
+curl "http://localhost:3001/?url=https://omg.webchartnow.com/webchart.cgi/fhir/metadata"
+
+# Production with nginx
+curl "https://fhircapstatviewer.os.mieweb.org/proxy?url=https://omg.webchartnow.com/webchart.cgi/fhir/metadata"
+```
+
+### Test PHP proxy directly:
 ```bash
 curl "https://fhircapstatviewer.os.mieweb.org/proxy.php?url=https://omg.webchartnow.com/webchart.cgi/fhir/metadata"
 ```
@@ -202,6 +345,53 @@ curl "https://fhircapstatviewer.os.mieweb.org/proxy.php?url=https://omg.webchart
 ---
 
 ## Troubleshooting
+
+### Python Proxy Issues:
+
+**Service won't start:**
+```bash
+# Check Python 3 is available
+python3 --version
+
+# Check if port is already in use
+sudo lsof -i :3001
+
+# View detailed logs
+sudo journalctl -u fhir-proxy -n 50 --no-pager
+```
+
+**Permission denied:**
+```bash
+# Make script executable
+chmod +x proxy-server.py
+
+# Or run directly with python3
+python3 proxy-server.py 3001
+```
+
+**Cannot connect to proxy:**
+```bash
+# Check if service is running
+sudo systemctl status fhir-proxy
+
+# Check if port is listening
+sudo netstat -tlnp | grep 3001
+
+# Test proxy directly
+curl "http://localhost:3001/?url=https://omg.webchartnow.com/webchart.cgi/fhir/metadata"
+```
+
+**Nginx 502 Bad Gateway:**
+```bash
+# Check if Python proxy is running
+sudo systemctl status fhir-proxy
+
+# Check nginx error log
+sudo tail -f /var/log/nginx/error.log
+
+# Verify proxy port in nginx config matches systemd service
+grep proxy_pass /etc/nginx/sites-enabled/fhircapstatviewer
+```
 
 ### PHP Proxy Issues:
 
@@ -282,22 +472,71 @@ For issues or questions:
 ## Quick Reference
 
 ### File Locations:
-- **PHP Proxy:** `proxy.php`
-- **Node.js Proxy:** `proxy-server.js`
-- **Package file:** `package.json`
+- **Python Proxy:** `proxy-server.py` ⭐ (Recommended)
+- **Systemd Service:** `fhir-proxy.service`
+- **Nginx Config:** `nginx.conf`
+- **PHP Proxy:** `proxy.php` (Alternative)
+- **Node.js Proxy:** `proxy-server.js` (Alternative)
+- **Package file:** `package.json` (for Node.js)
 - **Application:** `app.js` (line ~88 for proxy URL)
 
 ### Test Commands:
+
+**Python Proxy:**
+```bash
+# Start manually
+python3 proxy-server.py 3001
+
+# Check service
+sudo systemctl status fhir-proxy
+
+# View logs
+sudo journalctl -u fhir-proxy -f
+
+# Test directly
+curl "http://localhost:3001/?url=https://fhir-server/metadata"
+
+# Test through nginx
+curl "https://yourdomain.com/proxy?url=https://fhir-server/metadata"
+```
+
+**PHP Proxy:**
 ```bash
 # Test PHP proxy
 curl "https://yourdomain.com/proxy.php?url=https://fhir-server/metadata"
 
+# Check PHP modules
+php -m | grep curl
+```
+
+**Node.js Proxy:**
+```bash
 # Test Node.js proxy
 curl "http://localhost:3001/proxy?url=https://fhir-server/metadata"
 
-# Check PHP modules
-php -m | grep curl
-
-# Check Node.js processes
+# Check processes
 pm2 list
 ```
+
+### Quick Deploy (Python - Recommended):
+
+```bash
+# 1. Copy files to server
+scp -r * user@your-server:/var/www/yoursite/
+
+# 2. Install systemd service
+sudo cp fhir-proxy.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable fhir-proxy
+sudo systemctl start fhir-proxy
+
+# 3. Configure nginx
+sudo cp nginx.conf /etc/nginx/sites-available/yoursite
+sudo ln -s /etc/nginx/sites-available/yoursite /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+
+# 4. Test
+curl "https://yoursite.com/proxy?url=https://fhir-server/metadata"
+```
+

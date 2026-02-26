@@ -86,7 +86,8 @@ class FHIRCapabilityViewer {
                 
                 try {
                     // Try local proxy first (if available)
-                    let localProxyUrl = window.location.origin + '/proxy.php?url=';
+                    // This works with both proxy.php and proxy-server.py
+                    let localProxyUrl = window.location.origin + '/proxy?url=';
                     let proxiedUrl = localProxyUrl + encodeURIComponent(`${url}${url.includes('?') ? '&' : '?'}_format=json`);
                     
                     console.log('Attempting local proxy fetch to:', proxiedUrl);
