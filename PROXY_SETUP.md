@@ -41,8 +41,11 @@ python3 proxy-server.py 8080
 
 #### For Production with systemd:
 
-1. **Copy files to your web server:**
+1. **Create directory and copy files to your web server:**
    ```bash
+   # SSH into your production server and create the directory
+   ssh user@fhircapstatviewer.os.mieweb.org "sudo mkdir -p /var/www/fhircapstatviewer.os.mieweb.org && sudo chown \$USER:\$USER /var/www/fhircapstatviewer.os.mieweb.org"
+   
    # Copy all files to your web root
    scp -r * user@fhircapstatviewer.os.mieweb.org:/var/www/fhircapstatviewer.os.mieweb.org/
    ```
